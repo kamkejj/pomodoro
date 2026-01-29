@@ -138,6 +138,7 @@ Follow existing patterns in `src/routes/+page.svelte` and config files.
 - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
 - Use the imperative mood and keep summaries under ~72 chars when possible.
 - Add `!` for breaking changes; describe them in the body if needed.
+- When changes span multiple areas, group commits by related features whenever possible.
 - Examples:
   - `feat(timer): add long-break schedule`
   - `fix(settings): persist notification toggle`
