@@ -5,6 +5,7 @@ use tauri::Emitter;
 
 const MENU_OPEN_SETTINGS: &str = "open_settings";
 const MENU_OPEN_SHORTCUTS: &str = "open_shortcuts";
+const MENU_TOGGLE_STATUS_VIEW: &str = "toggle_status_view";
 
 #[cfg(target_os = "macos")]
 const SETTINGS_MENU_LABEL: &str = "Preferences...";
@@ -21,6 +22,11 @@ const SHORTCUTS_MENU_ACCELERATOR: &str = "Cmd+K";
 #[cfg(not(target_os = "macos"))]
 const SHORTCUTS_MENU_ACCELERATOR: &str = "Ctrl+K";
 
+#[cfg(target_os = "macos")]
+const STATUS_VIEW_MENU_ACCELERATOR: &str = "Cmd+Shift+S";
+#[cfg(not(target_os = "macos"))]
+const STATUS_VIEW_MENU_ACCELERATOR: &str = "Ctrl+Shift+S";
+
 fn build_menu<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<tauri::menu::Menu<R>> {
     let about_metadata = AboutMetadata {
         name: Some(app.package_info().name.clone()),
@@ -36,6 +42,9 @@ fn build_menu<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<tau
     let shortcuts_item = MenuItemBuilder::with_id(MENU_OPEN_SHORTCUTS, "Keyboard Shortcuts...")
         .accelerator(SHORTCUTS_MENU_ACCELERATOR)
         .build(app)?;
+    let status_view_item = MenuItemBuilder::with_id(MENU_TOGGLE_STATUS_VIEW, "Status-Only Mode")
+        .accelerator(STATUS_VIEW_MENU_ACCELERATOR)
+        .build(app)?;
 
     #[cfg(target_os = "macos")]
     {
@@ -44,6 +53,7 @@ fn build_menu<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<tau
             .separator()
             .item(&settings_item)
             .item(&shortcuts_item)
+            .item(&status_view_item)
             .separator()
             .services()
             .separator()
@@ -99,6 +109,7 @@ fn build_menu<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<tau
         let file_menu = SubmenuBuilder::new(app, "File")
             .item(&settings_item)
             .item(&shortcuts_item)
+            .item(&status_view_item)
             .build()?;
 
         #[cfg(not(any(
@@ -111,6 +122,7 @@ fn build_menu<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> tauri::Result<tau
         let file_menu = SubmenuBuilder::new(app, "File")
             .item(&settings_item)
             .item(&shortcuts_item)
+            .item(&status_view_item)
             .separator()
             .close_window()
             .quit()
@@ -163,6 +175,9 @@ pub fn run() {
                 }
                 MENU_OPEN_SHORTCUTS => {
                     let _ = app.emit("menu:open-shortcuts", ());
+                }
+                MENU_TOGGLE_STATUS_VIEW => {
+                    let _ = app.emit("menu:toggle-status-view", ());
                 }
                 _ => {}
             }

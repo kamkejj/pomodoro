@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
 	import {
 		defaultSettings,
 		formatTime,
@@ -15,6 +15,7 @@
 	const SETTINGS_KEY = 'pomodoro-settings-v1';
 	const THEME_KEY = 'pomodoro-theme-v1';
 	const NOTIFY_KEY = 'pomodoro-notify-v1';
+	const DEBUG_LOG_KEY = 'pomodoro-debug-log-v1';
 
 	let workMinutes = defaultSettings.workMinutes;
 	let breakMinutes = defaultSettings.breakMinutes;
@@ -40,11 +41,22 @@
 	let notificationPermission: NotificationPermission = 'default';
 	let isSettingsOpen = false;
 	let isShortcutsOpen = false;
+	let isStatusOnlyMode = false;
 	let menuUnlistenCallbacks: Array<() => void> = [];
 	let isTauriApp = false;
+	let hasTauriWindow = false;
 	let tauriPermissionDenied = false;
 	let modifierKeyLabel = 'Command';
 	let modifierKeyAria = 'Meta';
+	let statusPanelEl: HTMLDivElement | null = null;
+	let appWindow: any = null;
+	let tauriWindowApi: any = null;
+	let tauriDpiApi: any = null;
+	let originalWindowSize: { width: number; height: number } | null = null;
+	let originalWindowPosition: { x: number; y: number } | null = null;
+	let debugLog: string[] = [];
+	let focusRetryId: ReturnType<typeof setTimeout> | null = null;
+	let focusRetryCount = 0;
 	let tauriNotification: {
 		isPermissionGranted: () => Promise<boolean>;
 		requestPermission: () => Promise<NotificationPermission>;
@@ -82,7 +94,7 @@
 				tauriNotification = null;
 			}
 		}
-		isTauriApp = false;
+		isTauriApp = hasTauriWindow;
 		hasNotification = typeof Notification !== 'undefined';
 		if (hasNotification) {
 			notificationPermission = Notification.permission;
@@ -90,7 +102,19 @@
 		updateNotificationStatus();
 	};
 
-	onMount(() => {
+		onMount(() => {
+			loadDebugLog();
+			if (typeof window !== 'undefined') {
+				const windowRef = window as unknown as {
+					getPomodoroDebugLog?: () => string[];
+					clearPomodoroDebugLog?: () => void;
+				};
+				windowRef.getPomodoroDebugLog = () => debugLog.slice();
+				windowRef.clearPomodoroDebugLog = () => {
+					debugLog = [];
+					localStorage.removeItem(DEBUG_LOG_KEY);
+				};
+			}
 		void initializeNotifications();
 		if (typeof navigator !== 'undefined') {
 			const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform);
@@ -113,13 +137,36 @@
 				const unlistenShortcuts = await listen('menu:open-shortcuts', () => {
 					openShortcuts();
 				});
-				menuUnlistenCallbacks = [unlistenSettings, unlistenShortcuts];
+				const unlistenStatusView = await listen('menu:toggle-status-view', () => {
+					void toggleStatusOnlyMode();
+				});
+				menuUnlistenCallbacks = [unlistenSettings, unlistenShortcuts, unlistenStatusView];
 			} catch {
 				menuUnlistenCallbacks = [];
 			}
 		};
 
+		const setupWindowApi = async () => {
+			try {
+				const windowApi = await import('@tauri-apps/api/window');
+				const dpiApi = await import('@tauri-apps/api/dpi');
+				tauriWindowApi = windowApi;
+				tauriDpiApi = dpiApi;
+				appWindow = windowApi.getCurrentWindow();
+				hasTauriWindow = true;
+				isTauriApp = true;
+				if (isStatusOnlyMode) {
+					void resizeStatusOnlyWindow();
+				}
+			} catch {
+				tauriWindowApi = null;
+				tauriDpiApi = null;
+				appWindow = null;
+			}
+		};
+
 		void setupMenuListeners();
+		void setupWindowApi();
 
 		const stored = loadSettings();
 		if (stored) {
@@ -132,6 +179,9 @@
 		const handleKeydown = (event: KeyboardEvent) => {
 			const target = event.target as HTMLElement | null;
 			if (!target) return;
+			const isModifierPressed = modifierKeyAria === 'Meta' ? event.metaKey : event.ctrlKey;
+			const isSpaceKey = event.code === 'Space' || event.key === ' ' || event.key === 'Spacebar';
+
 			if (event.metaKey && event.key === ',') {
 				event.preventDefault();
 				openSettings();
@@ -141,6 +191,11 @@
 				event.preventDefault();
 				if (isSettingsOpen) return;
 				toggleShortcuts();
+				return;
+			}
+			if (hasTauriWindow && isModifierPressed && event.shiftKey && event.key.toLowerCase() === 's') {
+				event.preventDefault();
+				void toggleStatusOnlyMode();
 				return;
 			}
 			const isFormField =
@@ -163,8 +218,17 @@
 				return;
 			}
 
-			if (event.code === 'Space') {
+			if (isSpaceKey) {
+				if (isStatusOnlyMode) {
+					pushDebugLog(
+						`space keydown: key=${event.key} code=${event.code} focus=${document.hasFocus()} active=${getActiveElementLabel()}`
+					);
+				}
+				if (event.repeat) return;
 				event.preventDefault();
+				if (isStatusOnlyMode) {
+					event.stopPropagation();
+				}
 				toggleTimer();
 			}
 			if (event.key.toLowerCase() === 'r') {
@@ -175,9 +239,27 @@
 			}
 		};
 
-		window.addEventListener('keydown', handleKeydown);
+		const handleWindowFocus = () => {
+			if (!isStatusOnlyMode) return;
+			statusPanelEl?.focus();
+			pushDebugLog(`window focus: active=${getActiveElementLabel()}`);
+		};
+		const handleWindowBlur = () => {
+			pushDebugLog(`window blur: active=${getActiveElementLabel()}`);
+		};
+		const handleVisibilityChange = () => {
+			pushDebugLog(`visibility change: state=${document.visibilityState}`);
+		};
+
+		window.addEventListener('keydown', handleKeydown, true);
+		window.addEventListener('focus', handleWindowFocus);
+		window.addEventListener('blur', handleWindowBlur);
+		document.addEventListener('visibilitychange', handleVisibilityChange);
 		return () => {
-			window.removeEventListener('keydown', handleKeydown);
+			window.removeEventListener('keydown', handleKeydown, true);
+			window.removeEventListener('focus', handleWindowFocus);
+			window.removeEventListener('blur', handleWindowBlur);
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
 			menuUnlistenCallbacks.forEach((unlisten) => unlisten());
 		};
 	});
@@ -426,6 +508,7 @@
 	};
 
 	const openSettings = () => {
+		void exitStatusOnlyMode();
 		isShortcutsOpen = false;
 		isSettingsOpen = true;
 	};
@@ -435,6 +518,7 @@
 	};
 
 	const openShortcuts = () => {
+		void exitStatusOnlyMode();
 		isSettingsOpen = false;
 		isShortcutsOpen = true;
 	};
@@ -450,6 +534,205 @@
 		}
 		openShortcuts();
 	};
+
+	const enterStatusOnlyMode = async () => {
+		isSettingsOpen = false;
+		isShortcutsOpen = false;
+		isStatusOnlyMode = true;
+		pushDebugLog('status-only enter: before delay');
+		await new Promise((resolve) => setTimeout(resolve, 150));
+		await resizeStatusOnlyWindow();
+		scheduleStatusOnlyFocus();
+		pushDebugLog('status-only enter');
+	};
+
+	const exitStatusOnlyMode = async () => {
+		isStatusOnlyMode = false;
+		clearStatusOnlyFocus();
+		if (!appWindow || !tauriWindowApi) return;
+		if (originalWindowSize) {
+			const sizePayload = tauriDpiApi?.PhysicalSize
+				? new tauriDpiApi.PhysicalSize(originalWindowSize.width, originalWindowSize.height)
+				: { type: 'Physical', width: originalWindowSize.width, height: originalWindowSize.height };
+			await appWindow.setSize(
+				sizePayload
+			);
+		}
+		if (originalWindowPosition) {
+			await appWindow.setPosition(
+				tauriDpiApi?.PhysicalPosition
+					? new tauriDpiApi.PhysicalPosition(
+						originalWindowPosition.x,
+						originalWindowPosition.y
+					)
+					: {
+						type: 'Physical',
+						x: originalWindowPosition.x,
+						y: originalWindowPosition.y
+					}
+			);
+		}
+		originalWindowSize = null;
+		originalWindowPosition = null;
+		pushDebugLog('status-only exit');
+	};
+
+	const toggleStatusOnlyMode = async () => {
+		if (isStatusOnlyMode) {
+			await exitStatusOnlyMode();
+			return;
+		}
+		await enterStatusOnlyMode();
+	};
+
+	const resizeStatusOnlyWindow = async () => {
+		if (!isStatusOnlyMode) return;
+		if (!appWindow || !tauriWindowApi) return;
+		if (!statusPanelEl) return;
+		try {
+			await appWindow.setResizable(true);
+		} catch {
+			// no-op
+		}
+		try {
+			await appWindow.setFocusable(true);
+		} catch {
+			// no-op
+		}
+		if (!originalWindowSize) {
+			try {
+				const size = await appWindow.innerSize();
+				originalWindowSize = { width: size.width, height: size.height };
+			} catch {
+				originalWindowSize = null;
+			}
+		}
+		if (!originalWindowPosition) {
+			try {
+				const position = await appWindow.outerPosition();
+				originalWindowPosition = { x: position.x, y: position.y };
+			} catch {
+				originalWindowPosition = null;
+			}
+		}
+		await tick();
+		await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+		const rect = (statusPanelEl as HTMLDivElement).getBoundingClientRect();
+		const paddingX = 26;
+		const paddingY = 54;
+		let scaleFactor = 1;
+		try {
+			scaleFactor = await appWindow.scaleFactor();
+		} catch {
+			scaleFactor = window.devicePixelRatio || 1;
+		}
+		const width = Math.max(1, Math.ceil((rect.width + paddingX) * scaleFactor));
+		const height = Math.max(1, Math.ceil((rect.height + paddingY) * scaleFactor));
+		const sizePayload = tauriDpiApi?.PhysicalSize
+			? new tauriDpiApi.PhysicalSize(width, height)
+			: { type: 'Physical', width, height };
+		pushDebugLog(
+			`resize prepare: rect=${Math.round(rect.width)}x${Math.round(rect.height)} scale=${scaleFactor.toFixed(2)} focus=${document.hasFocus()} active=${getActiveElementLabel()}`
+		);
+		await appWindow.setSize(sizePayload);
+		try {
+			await appWindow.setFocus();
+		} catch {
+			// no-op
+		}
+		scheduleStatusOnlyFocus();
+		await new Promise((resolve) => setTimeout(resolve, 120));
+		pushDebugLog(
+			`resize status-only: rect=${Math.round(rect.width)}x${Math.round(rect.height)} scale=${scaleFactor.toFixed(2)} focus=${document.hasFocus()} active=${getActiveElementLabel()}`
+		);
+	};
+
+	const clearStatusOnlyFocus = () => {
+		if (focusRetryId) {
+			clearTimeout(focusRetryId);
+			focusRetryId = null;
+		}
+		focusRetryCount = 0;
+	};
+
+	const scheduleStatusOnlyFocus = () => {
+		clearStatusOnlyFocus();
+		void reinforceStatusOnlyFocus();
+	};
+
+	const reinforceStatusOnlyFocus = async () => {
+		if (!isStatusOnlyMode) return;
+		const hasFocus = typeof document !== 'undefined' ? document.hasFocus() : true;
+		if (hasFocus && statusPanelEl && document.activeElement === statusPanelEl) {
+			pushDebugLog(`reinforce focus: active=${getActiveElementLabel()}`);
+			return;
+		}
+		if (appWindow) {
+			try {
+				await appWindow.setFocus();
+			} catch {
+				// no-op
+			}
+		}
+		if (typeof window !== 'undefined') {
+			try {
+				window.focus();
+			} catch {
+				// no-op
+			}
+		}
+		statusPanelEl?.focus();
+		pushDebugLog(`reinforce focus: active=${getActiveElementLabel()}`);
+		focusRetryCount += 1;
+		if (focusRetryCount < 30 && !hasFocus) {
+			focusRetryId = setTimeout(() => {
+				void reinforceStatusOnlyFocus();
+			}, 200);
+		}
+	};
+
+	const loadDebugLog = () => {
+		try {
+			const stored = localStorage.getItem(DEBUG_LOG_KEY);
+			debugLog = stored ? (JSON.parse(stored) as string[]) : [];
+		} catch {
+			debugLog = [];
+		}
+	};
+
+	const pushDebugLog = (message: string) => {
+		const entry = `${new Date().toISOString()} ${message}`;
+		debugLog = [...debugLog, entry].slice(-200);
+		try {
+			localStorage.setItem(DEBUG_LOG_KEY, JSON.stringify(debugLog));
+		} catch {
+			// no-op
+		}
+		if (typeof window !== 'undefined') {
+			console.info(entry);
+		}
+	};
+
+	const getActiveElementLabel = () => {
+		if (typeof document === 'undefined') return 'unknown';
+		const active = document.activeElement as HTMLElement | null;
+		if (!active) return 'none';
+		const id = active.id ? `#${active.id}` : '';
+		const className = active.className ? `.${String(active.className).replace(/\s+/g, '.')}` : '';
+		return `${active.tagName.toLowerCase()}${id}${className}`;
+	};
+
+	const handleStatusPanelKeydown = (event: KeyboardEvent) => {
+		if (!isStatusOnlyMode) return;
+		if (event.key !== 'Enter') return;
+		event.preventDefault();
+		void exitStatusOnlyMode();
+	};
+
+	const handleStatusPanelClick = () => {
+		if (!isStatusOnlyMode) return;
+		void exitStatusOnlyMode();
+	};
 </script>
 
 <svelte:head>
@@ -460,7 +743,7 @@
 	/>
 </svelte:head>
 
-<main class="app" data-theme={theme}>
+<main class="app" class:status-only={isStatusOnlyMode} data-theme={theme}>
 	<header class="topbar">
 		<div class="brand">
 			<div class="brand-pill" aria-hidden="true"></div>
@@ -479,7 +762,15 @@
 			>
 				<span class="lcars-stub" aria-hidden="true"></span>
 			</button>
-			<div class="status-panel">
+			<div
+				class={`status-panel ${isStatusOnlyMode ? 'status-panel-interactive' : ''}`}
+				bind:this={statusPanelEl}
+				on:click={handleStatusPanelClick}
+				on:keydown={handleStatusPanelKeydown}
+				role={isStatusOnlyMode ? 'button' : undefined}
+				aria-label={isStatusOnlyMode ? 'Exit status-only mode' : undefined}
+				tabindex={isStatusOnlyMode ? 0 : undefined}
+			>
 				<div class="status-row">
 					<span class="status-label">Status</span>
 					<span>{statusLabel}</span>

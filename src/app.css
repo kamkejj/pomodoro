@@ -61,6 +61,26 @@ a {
 	grid-template-rows: auto 1fr auto;
 }
 
+.app.status-only {
+	grid-template-rows: 1fr;
+	align-content: center;
+}
+
+.app.status-only .topbar {
+	justify-content: center;
+}
+
+.app.status-only .topbar-actions {
+	width: auto;
+	justify-content: center;
+}
+
+.app.status-only .brand,
+.app.status-only .settings-button,
+.app.status-only .content {
+	display: none;
+}
+
 .topbar {
 	display: flex;
 	justify-content: space-between;
@@ -185,6 +205,15 @@ a {
 	border-left: 12px solid var(--accent-3);
 	box-shadow: var(--shadow);
 	min-width: 200px;
+}
+
+.status-panel-interactive {
+	cursor: pointer;
+}
+
+.status-panel-interactive:focus-visible {
+	outline: 3px solid var(--focus);
+	outline-offset: 3px;
 }
 
 .status-row {
