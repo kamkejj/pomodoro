@@ -185,6 +185,16 @@
 
 		announceText = `${phaseLabel} session ready.`;
 
+		if (import.meta.env.DEV) {
+			const visualMode = new URLSearchParams(window.location.search).get('visual');
+			if (visualMode === 'settings') {
+				void openSettings();
+			}
+			if (visualMode === 'shortcuts') {
+				openShortcuts();
+			}
+		}
+
 		const handleKeydown = (event: KeyboardEvent) => {
 			const target = event.target as HTMLElement | null;
 			if (!target) return;

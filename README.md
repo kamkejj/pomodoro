@@ -87,6 +87,57 @@ Watch tests:
 bun run test:watch
 ```
 
+## Visual tests
+
+Install Playwright browsers (once per machine):
+
+```sh
+bunx playwright install
+```
+
+If you do not have Bun installed:
+
+```sh
+npx playwright install
+```
+
+Run visual tests:
+
+```sh
+bun run test:visual
+```
+
+Update visual snapshots:
+
+```sh
+bun run test:visual:update
+```
+
+If you do not have Bun installed, run:
+
+```sh
+npm run test:visual
+```
+
+Update visual snapshots without Bun:
+
+```sh
+npm run test:visual:update
+```
+
+During visual tests, overlays are opened deterministically using dev-only URLs:
+
+```sh
+http://127.0.0.1:4173/?visual=settings
+http://127.0.0.1:4173/?visual=shortcuts
+```
+
+To override the dev server command (for example, to use npm), set:
+
+```sh
+PW_SERVER_COMMAND="npm run dev -- --host 127.0.0.1 --port 4173"
+```
+
 ## Tauri (optional)
 
 Run the desktop app in dev mode:
