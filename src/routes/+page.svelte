@@ -854,18 +854,18 @@
 									>
 										{notificationsEnabled ? 'Disable' : 'Enable'}
 									</button>
-							<button
-								class="button"
-								type="button"
-								on:click={testNotification}
-								disabled={!hasNotification || notificationPermission === 'denied'}
-							>
-								Test
-							</button>
+									<button
+										class="button"
+										type="button"
+										on:click={testNotification}
+										disabled={!hasNotification || notificationPermission === 'denied'}
+									>
+										Test
+									</button>
 								</div>
 							</fieldset>
 							<div class="settings-footer">
-								<button class="button secondary" type="submit">Apply</button>
+								<button class="button secondary" type="submit">Make It So</button>
 								<button class="button ghost" type="button" on:click={resetToDefaults}>
 									Reset Defaults
 								</button>
