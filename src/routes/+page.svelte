@@ -103,6 +103,11 @@
 		const handleKeydown = (event: KeyboardEvent) => {
 			const target = event.target as HTMLElement | null;
 			if (!target) return;
+			if (event.metaKey && event.key === ',') {
+				event.preventDefault();
+				openSettings();
+				return;
+			}
 			const isFormField =
 				target.tagName === 'INPUT' ||
 				target.tagName === 'TEXTAREA' ||
@@ -406,6 +411,7 @@
 				class="icon-button lcars-button settings-button"
 				on:click={openSettings}
 				aria-label="Open settings"
+				aria-keyshortcuts="Meta+,"
 				aria-pressed={isSettingsOpen}
 			>
 				<span class="lcars-stub" aria-hidden="true"></span>
