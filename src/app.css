@@ -21,6 +21,7 @@
 	--accent-3: #7bdff2;
 	--accent-4: #f6e27f;
 	--accent-5: #a6a9ff;
+	--accent-settings: #d71920;
 	--work: #f2a65a;
 	--break: #7bdff2;
 	--complete: #b7e4c7;
@@ -114,7 +115,7 @@ a {
 	height: 43px;
 	border-radius: 50%;
 	border: none;
-	background: var(--accent-1);
+	background: var(--accent-settings);
 	box-shadow: inset -8px 0 0 rgba(0, 0, 0, 0.18), 0 10px 20px rgba(0, 0, 0, 0.35);
 }
 
