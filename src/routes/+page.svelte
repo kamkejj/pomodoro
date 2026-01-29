@@ -499,7 +499,7 @@
 	<div class="content">
 		<section class="panel" aria-labelledby="timer-title">
 			<div class="panel-header">
-				<h2 id="timer-title" class="panel-title">Timer</h2>
+				<span id="timer-title" class="panel-title"></span>
 				<span
 					class={`phase-badge ${
 						phase === 'work'
