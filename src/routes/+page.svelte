@@ -525,82 +525,90 @@
 				</div>
 				<form class="settings-form" on:submit|preventDefault={applySettings}>
 					<div class="settings-grid">
-						<div class="field">
-							<label for="work-minutes">Work minutes</label>
-							<input
-								id="work-minutes"
-								type="number"
-								min="1"
-								max="180"
-								step="1"
-								bind:value={draftWorkMinutes}
-								inputmode="numeric"
-								aria-describedby="work-help"
-							/>
-							<p id="work-help" class="field-help">Classic default: 25 minutes.</p>
+						<div class="settings-group">
+							<div class="field">
+								<label for="work-minutes">Work minutes</label>
+								<input
+									id="work-minutes"
+									type="number"
+									min="1"
+									max="180"
+									step="1"
+									bind:value={draftWorkMinutes}
+									inputmode="numeric"
+									aria-describedby="work-help"
+								/>
+								<p id="work-help" class="field-help">Classic default: 25 minutes.</p>
+							</div>
+							<div class="field">
+								<label for="break-minutes">Break minutes</label>
+								<input
+									id="break-minutes"
+									type="number"
+									min="1"
+									max="60"
+									step="1"
+									bind:value={draftBreakMinutes}
+									inputmode="numeric"
+									aria-describedby="break-help"
+								/>
+								<p id="break-help" class="field-help">Classic default: 5 minutes.</p>
+							</div>
+							<div class="field">
+								<label for="iterations">Iterations</label>
+								<input
+									id="iterations"
+									type="number"
+									min="1"
+									max="12"
+									step="1"
+									bind:value={draftIterations}
+									inputmode="numeric"
+									aria-describedby="iterations-help"
+								/>
+								<p id="iterations-help" class="field-help">Classic default: 4 rounds.</p>
+							</div>
 						</div>
-						<div class="field">
-							<label for="break-minutes">Break minutes</label>
-							<input
-								id="break-minutes"
-								type="number"
-								min="1"
-								max="60"
-								step="1"
-								bind:value={draftBreakMinutes}
-								inputmode="numeric"
-								aria-describedby="break-help"
-							/>
-							<p id="break-help" class="field-help">Classic default: 5 minutes.</p>
-						</div>
-						<div class="field">
-							<label for="iterations">Iterations</label>
-							<input
-								id="iterations"
-								type="number"
-								min="1"
-								max="12"
-								step="1"
-								bind:value={draftIterations}
-								inputmode="numeric"
-								aria-describedby="iterations-help"
-							/>
-							<p id="iterations-help" class="field-help">Classic default: 4 rounds.</p>
-						</div>
-					</div>
-					<p class="field-help">Applying settings stops and resets the timer.</p>
-					<fieldset class="field" aria-describedby="notification-help">
-						<legend>Notifications</legend>
-						<p id="notification-help" class="field-help">{notificationStatus}</p>
-						<div class="settings-footer">
-							{#if hasNotification && notificationPermission !== 'granted'}
-								<button class="button secondary" type="button" on:click={requestNotificationPermission}>
-									Request Permission
+						<div class="settings-actions">
+							<p class="field-help">Applying settings stops and resets the timer.</p>
+							<fieldset class="field" aria-describedby="notification-help">
+								<legend>Notifications</legend>
+								<p id="notification-help" class="field-help">{notificationStatus}</p>
+								<div class="settings-footer">
+									{#if hasNotification && notificationPermission !== 'granted'}
+										<button
+											class="button secondary"
+											type="button"
+											on:click={requestNotificationPermission}
+										>
+											Request Permission
+										</button>
+									{/if}
+									<button
+										class="button ghost"
+										type="button"
+										on:click={toggleNotifications}
+										disabled={!hasNotification || notificationPermission === 'denied'}
+									>
+										{notificationsEnabled ? 'Disable' : 'Enable'}
+									</button>
+									<button
+										class="button"
+										type="button"
+										on:click={testNotification}
+										disabled={!notificationsEnabled || notificationPermission !== 'granted'}
+									>
+										Test
+									</button>
+								</div>
+							</fieldset>
+							<div class="settings-footer">
+								<button class="button secondary" type="submit">Apply</button>
+								<button class="button ghost" type="button" on:click={resetToDefaults}>
+									Reset Defaults
 								</button>
-							{/if}
-						<button
-							class="button ghost"
-							type="button"
-							on:click={toggleNotifications}
-							disabled={!hasNotification || notificationPermission === 'denied'}
-						>
-								{notificationsEnabled ? 'Disable' : 'Enable'}
-							</button>
-							<button
-								class="button"
-								type="button"
-								on:click={testNotification}
-								disabled={!notificationsEnabled || notificationPermission !== 'granted'}
-							>
-								Test
-							</button>
+							</div>
 						</div>
-					</fieldset>
-					<div class="settings-footer">
-						<button class="button secondary" type="submit">Apply</button>
-						<button class="button ghost" type="button" on:click={resetToDefaults}>
-							Reset Defaults
-						</button>
 					</div>
 				</form>
 			</section>
