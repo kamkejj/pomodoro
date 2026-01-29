@@ -15,7 +15,6 @@
 	const SETTINGS_KEY = 'pomodoro-settings-v1';
 	const THEME_KEY = 'pomodoro-theme-v1';
 	const NOTIFY_KEY = 'pomodoro-notify-v1';
-	const DEBUG_LOG_KEY = 'pomodoro-debug-log-v1';
 
 	let workMinutes = defaultSettings.workMinutes;
 	let breakMinutes = defaultSettings.breakMinutes;
@@ -54,7 +53,6 @@
 	let tauriDpiApi: any = null;
 	let originalWindowSize: { width: number; height: number } | null = null;
 	let originalWindowPosition: { x: number; y: number } | null = null;
-	let debugLog: string[] = [];
 	let focusRetryId: ReturnType<typeof setTimeout> | null = null;
 	let focusRetryCount = 0;
 	let tauriNotification: {
@@ -102,19 +100,8 @@
 		updateNotificationStatus();
 	};
 
-		onMount(() => {
-			loadDebugLog();
-			if (typeof window !== 'undefined') {
-				const windowRef = window as unknown as {
-					getPomodoroDebugLog?: () => string[];
-					clearPomodoroDebugLog?: () => void;
-				};
-				windowRef.getPomodoroDebugLog = () => debugLog.slice();
-				windowRef.clearPomodoroDebugLog = () => {
-					debugLog = [];
-					localStorage.removeItem(DEBUG_LOG_KEY);
-				};
-			}
+	onMount(() => {
+		localStorage.removeItem('pomodoro-debug-log-v1');
 		void initializeNotifications();
 		if (typeof navigator !== 'undefined') {
 			const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform);
@@ -219,11 +206,6 @@
 			}
 
 			if (isSpaceKey) {
-				if (isStatusOnlyMode) {
-					pushDebugLog(
-						`space keydown: key=${event.key} code=${event.code} focus=${document.hasFocus()} active=${getActiveElementLabel()}`
-					);
-				}
 				if (event.repeat) return;
 				event.preventDefault();
 				if (isStatusOnlyMode) {
@@ -242,24 +224,13 @@
 		const handleWindowFocus = () => {
 			if (!isStatusOnlyMode) return;
 			statusPanelEl?.focus();
-			pushDebugLog(`window focus: active=${getActiveElementLabel()}`);
-		};
-		const handleWindowBlur = () => {
-			pushDebugLog(`window blur: active=${getActiveElementLabel()}`);
-		};
-		const handleVisibilityChange = () => {
-			pushDebugLog(`visibility change: state=${document.visibilityState}`);
 		};
 
 		window.addEventListener('keydown', handleKeydown, true);
 		window.addEventListener('focus', handleWindowFocus);
-		window.addEventListener('blur', handleWindowBlur);
-		document.addEventListener('visibilitychange', handleVisibilityChange);
 		return () => {
 			window.removeEventListener('keydown', handleKeydown, true);
 			window.removeEventListener('focus', handleWindowFocus);
-			window.removeEventListener('blur', handleWindowBlur);
-			document.removeEventListener('visibilitychange', handleVisibilityChange);
 			menuUnlistenCallbacks.forEach((unlisten) => unlisten());
 		};
 	});
@@ -539,11 +510,9 @@
 		isSettingsOpen = false;
 		isShortcutsOpen = false;
 		isStatusOnlyMode = true;
-		pushDebugLog('status-only enter: before delay');
 		await new Promise((resolve) => setTimeout(resolve, 150));
 		await resizeStatusOnlyWindow();
 		scheduleStatusOnlyFocus();
-		pushDebugLog('status-only enter');
 	};
 
 	const exitStatusOnlyMode = async () => {
@@ -574,7 +543,6 @@
 		}
 		originalWindowSize = null;
 		originalWindowPosition = null;
-		pushDebugLog('status-only exit');
 	};
 
 	const toggleStatusOnlyMode = async () => {
@@ -631,9 +599,6 @@
 		const sizePayload = tauriDpiApi?.PhysicalSize
 			? new tauriDpiApi.PhysicalSize(width, height)
 			: { type: 'Physical', width, height };
-		pushDebugLog(
-			`resize prepare: rect=${Math.round(rect.width)}x${Math.round(rect.height)} scale=${scaleFactor.toFixed(2)} focus=${document.hasFocus()} active=${getActiveElementLabel()}`
-		);
 		await appWindow.setSize(sizePayload);
 		try {
 			await appWindow.setFocus();
@@ -641,10 +606,6 @@
 			// no-op
 		}
 		scheduleStatusOnlyFocus();
-		await new Promise((resolve) => setTimeout(resolve, 120));
-		pushDebugLog(
-			`resize status-only: rect=${Math.round(rect.width)}x${Math.round(rect.height)} scale=${scaleFactor.toFixed(2)} focus=${document.hasFocus()} active=${getActiveElementLabel()}`
-		);
 	};
 
 	const clearStatusOnlyFocus = () => {
@@ -664,7 +625,6 @@
 		if (!isStatusOnlyMode) return;
 		const hasFocus = typeof document !== 'undefined' ? document.hasFocus() : true;
 		if (hasFocus && statusPanelEl && document.activeElement === statusPanelEl) {
-			pushDebugLog(`reinforce focus: active=${getActiveElementLabel()}`);
 			return;
 		}
 		if (appWindow) {
@@ -682,44 +642,12 @@
 			}
 		}
 		statusPanelEl?.focus();
-		pushDebugLog(`reinforce focus: active=${getActiveElementLabel()}`);
 		focusRetryCount += 1;
 		if (focusRetryCount < 30 && !hasFocus) {
 			focusRetryId = setTimeout(() => {
 				void reinforceStatusOnlyFocus();
 			}, 200);
 		}
-	};
-
-	const loadDebugLog = () => {
-		try {
-			const stored = localStorage.getItem(DEBUG_LOG_KEY);
-			debugLog = stored ? (JSON.parse(stored) as string[]) : [];
-		} catch {
-			debugLog = [];
-		}
-	};
-
-	const pushDebugLog = (message: string) => {
-		const entry = `${new Date().toISOString()} ${message}`;
-		debugLog = [...debugLog, entry].slice(-200);
-		try {
-			localStorage.setItem(DEBUG_LOG_KEY, JSON.stringify(debugLog));
-		} catch {
-			// no-op
-		}
-		if (typeof window !== 'undefined') {
-			console.info(entry);
-		}
-	};
-
-	const getActiveElementLabel = () => {
-		if (typeof document === 'undefined') return 'unknown';
-		const active = document.activeElement as HTMLElement | null;
-		if (!active) return 'none';
-		const id = active.id ? `#${active.id}` : '';
-		const className = active.className ? `.${String(active.className).replace(/\s+/g, '.')}` : '';
-		return `${active.tagName.toLowerCase()}${id}${className}`;
 	};
 
 	const handleStatusPanelKeydown = (event: KeyboardEvent) => {
