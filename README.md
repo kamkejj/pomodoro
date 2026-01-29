@@ -1,42 +1,57 @@
-# sv
+# Pomodoro
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Pomodoro is a focused timer app built with SvelteKit and Vite, with an optional Tauri desktop shell. It helps you run Pomodoro sessions (work and breaks), track your current phase, and manage your flow without leaving the app.
 
-## Creating a project
+## Development
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```sh
-# create a new project
-npx sv create my-app
-```
-
-To recreate this project with the same configuration:
+Install dependencies:
 
 ```sh
-# recreate this project
-bun x sv create --template minimal --types ts --install bun .
+bun install
 ```
 
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Start the dev server:
 
 ```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+bun run dev
 ```
 
-## Building
-
-To create a production version of your app:
+Open a browser automatically:
 
 ```sh
-npm run build
+bun run dev -- --open
 ```
 
-You can preview the production build with `npm run preview`.
+Type-check Svelte/TypeScript:
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+```sh
+bun run check
+```
+
+## Build and preview
+
+Build the production bundle:
+
+```sh
+bun run build
+```
+
+Preview the production build:
+
+```sh
+bun run preview
+```
+
+## Tauri (optional)
+
+Run the desktop app in dev mode:
+
+```sh
+bunx tauri dev
+```
+
+Build the desktop app:
+
+```sh
+bunx tauri build
+```
