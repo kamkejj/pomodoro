@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	APP_TITLE,
 	defaultSettings,
 	formatTime,
+	getWindowTitle,
 	getProgressPercent,
 	parseStoredSettings,
-	sanitizeSettings
+	sanitizeSettings,
+	STATUS_ONLY_TITLE
 } from './pomodoro';
 
 describe('sanitizeSettings', () => {
@@ -76,5 +79,15 @@ describe('getProgressPercent', () => {
 
 	it('returns 0 when phase total is zero', () => {
 		expect(getProgressPercent(10, 0)).toBe(0);
+	});
+});
+
+describe('getWindowTitle', () => {
+	it('uses the status-only title when enabled', () => {
+		expect(getWindowTitle(true)).toBe(STATUS_ONLY_TITLE);
+	});
+
+	it('uses the app title when disabled', () => {
+		expect(getWindowTitle(false)).toBe(APP_TITLE);
 	});
 });

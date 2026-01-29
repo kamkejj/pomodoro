@@ -75,6 +75,12 @@ Run all tests:
 bun run test
 ```
 
+If you do not have Bun installed:
+
+```sh
+npm run test
+```
+
 Watch tests:
 
 ```sh

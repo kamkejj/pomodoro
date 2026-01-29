@@ -1,13 +1,16 @@
 <script lang="ts">
 	import { onDestroy, onMount, tick } from 'svelte';
 	import {
+		APP_TITLE,
 		defaultSettings,
 		formatTime,
+		getWindowTitle,
 		getPhaseLabel,
 		getPhaseTotalSeconds,
 		getProgressPercent,
 		parseStoredSettings,
 		sanitizeSettings,
+		STATUS_ONLY_TITLE,
 		type Phase,
 		type Settings
 	} from '$lib/pomodoro';
@@ -15,8 +18,6 @@
 	const SETTINGS_KEY = 'pomodoro-settings-v1';
 	const THEME_KEY = 'pomodoro-theme-v1';
 	const NOTIFY_KEY = 'pomodoro-notify-v1';
-	const APP_TITLE = 'Temporal Interval Protocol';
-	const STATUS_ONLY_TITLE = 'TIP';
 
 	let windowTitle = APP_TITLE;
 
@@ -162,7 +163,7 @@
 				appWindow = windowApi.getCurrentWindow();
 				hasTauriWindow = true;
 				isTauriApp = true;
-				await updateWindowTitle(isStatusOnlyMode ? STATUS_ONLY_TITLE : APP_TITLE);
+				await updateWindowTitle(getWindowTitle(isStatusOnlyMode));
 				if (isStatusOnlyMode) {
 					void resizeStatusOnlyWindow();
 				}
@@ -568,7 +569,7 @@
 		isSettingsOpen = false;
 		isShortcutsOpen = false;
 		isStatusOnlyMode = true;
-		await updateWindowTitle(STATUS_ONLY_TITLE);
+		await updateWindowTitle(getWindowTitle(isStatusOnlyMode));
 		await new Promise((resolve) => setTimeout(resolve, 150));
 		await resizeStatusOnlyWindow();
 		scheduleStatusOnlyFocus();
@@ -577,7 +578,7 @@
 	const exitStatusOnlyMode = async () => {
 		isStatusOnlyMode = false;
 		clearStatusOnlyFocus();
-		await updateWindowTitle(APP_TITLE);
+		await updateWindowTitle(getWindowTitle(isStatusOnlyMode));
 		if (!appWindow || !tauriWindowApi) return;
 		if (originalWindowSize) {
 			const sizePayload = tauriDpiApi?.PhysicalSize
@@ -617,7 +618,7 @@
 		if (!isStatusOnlyMode) return;
 		if (!appWindow || !tauriWindowApi) return;
 		if (!statusPanelEl) return;
-		await updateWindowTitle(STATUS_ONLY_TITLE);
+		await updateWindowTitle(getWindowTitle(isStatusOnlyMode));
 		try {
 			await appWindow.setResizable(true);
 		} catch {

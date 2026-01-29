@@ -12,6 +12,12 @@ export const defaultSettings: Settings = {
 	iterations: 4
 };
 
+export const APP_TITLE = 'Temporal Interval Protocol';
+export const STATUS_ONLY_TITLE = 'TIP';
+
+export const getWindowTitle = (isStatusOnlyMode: boolean) =>
+	isStatusOnlyMode ? STATUS_ONLY_TITLE : APP_TITLE;
+
 export const clamp = (value: number, min: number, max: number) =>
 	Math.min(max, Math.max(min, Math.round(value)));
 
