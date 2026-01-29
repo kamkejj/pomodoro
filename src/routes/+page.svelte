@@ -15,6 +15,10 @@
 	const SETTINGS_KEY = 'pomodoro-settings-v1';
 	const THEME_KEY = 'pomodoro-theme-v1';
 	const NOTIFY_KEY = 'pomodoro-notify-v1';
+	const APP_TITLE = 'Temporal Interval Protocol';
+	const STATUS_ONLY_TITLE = 'TIP';
+
+	let windowTitle = APP_TITLE;
 
 	let workMinutes = defaultSettings.workMinutes;
 	let breakMinutes = defaultSettings.breakMinutes;
@@ -102,6 +106,20 @@
 		updateNotificationStatus();
 	};
 
+	const updateWindowTitle = async (title: string) => {
+		windowTitle = title;
+		if (typeof document !== 'undefined') {
+			document.title = title;
+		}
+		if (appWindow) {
+			try {
+				await appWindow.setTitle(title);
+			} catch {
+				// no-op
+			}
+		}
+	};
+
 	onMount(() => {
 		localStorage.removeItem('pomodoro-debug-log-v1');
 		void initializeNotifications();
@@ -144,6 +162,7 @@
 				appWindow = windowApi.getCurrentWindow();
 				hasTauriWindow = true;
 				isTauriApp = true;
+				await updateWindowTitle(isStatusOnlyMode ? STATUS_ONLY_TITLE : APP_TITLE);
 				if (isStatusOnlyMode) {
 					void resizeStatusOnlyWindow();
 				}
@@ -411,7 +430,7 @@
 				remainingMilliseconds = 0;
 				stopTimer();
 				announceText = 'All iterations complete.';
-				sendNotification('Pomodoro complete', 'All iterations finished.');
+				sendNotification('TIP complete', 'All iterations finished.');
 				return;
 			}
 			phase = 'break';
@@ -549,6 +568,7 @@
 		isSettingsOpen = false;
 		isShortcutsOpen = false;
 		isStatusOnlyMode = true;
+		await updateWindowTitle(STATUS_ONLY_TITLE);
 		await new Promise((resolve) => setTimeout(resolve, 150));
 		await resizeStatusOnlyWindow();
 		scheduleStatusOnlyFocus();
@@ -557,6 +577,7 @@
 	const exitStatusOnlyMode = async () => {
 		isStatusOnlyMode = false;
 		clearStatusOnlyFocus();
+		await updateWindowTitle(APP_TITLE);
 		if (!appWindow || !tauriWindowApi) return;
 		if (originalWindowSize) {
 			const sizePayload = tauriDpiApi?.PhysicalSize
@@ -596,6 +617,7 @@
 		if (!isStatusOnlyMode) return;
 		if (!appWindow || !tauriWindowApi) return;
 		if (!statusPanelEl) return;
+		await updateWindowTitle(STATUS_ONLY_TITLE);
 		try {
 			await appWindow.setResizable(true);
 		} catch {
@@ -703,10 +725,10 @@
 </script>
 
 <svelte:head>
-	<title>LCARS Pomodoro</title>
+	<title>{windowTitle}</title>
 	<meta
 		name="description"
-		content="Configurable Pomodoro timer with LCARS-inspired interface and accessible controls."
+		content="Configurable temporal interval timer with LCARS-inspired interface and accessible controls."
 	/>
 </svelte:head>
 

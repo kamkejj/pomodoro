@@ -1,10 +1,10 @@
-# Pomodoro
+# Temporal Interval Protocol (TIP)
 
-Pomodoro is a focused timer app built with SvelteKit and Vite, with an optional Tauri desktop shell. It helps you run Pomodoro sessions (work and breaks), track your current phase, and manage your flow without leaving the app.
+Temporal Interval Protocol (TIP) is a focused timer app built with SvelteKit and Vite, with an optional Tauri desktop shell. It helps you run structured work and break sessions, track your current phase, and manage your flow without leaving the app.
 
 # Dev notes
 
-Pomodoro is a SvelteKit + Vite app with an optional Tauri desktop shell.
+Temporal Interval Protocol (TIP) is a SvelteKit + Vite app with an optional Tauri desktop shell.
 
 Project structure highlights:
 
