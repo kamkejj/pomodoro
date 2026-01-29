@@ -466,7 +466,7 @@
 			<div class="brand-pill" aria-hidden="true"></div>
 			<div class="brand-text">
 				<span class="brand-label">LCARS Operations</span>
-				<h1 class="brand-title">Pomodoro Command</h1>
+				<h1 class="brand-title">Ops</h1>
 			</div>
 		</div>
 		<div class="topbar-actions">
@@ -499,7 +499,7 @@
 	<div class="content">
 		<section class="panel" aria-labelledby="timer-title">
 			<div class="panel-header">
-				<h2 id="timer-title" class="panel-title">Timer</h2>
+				<span id="timer-title" class="panel-title"></span>
 				<span
 					class={`phase-badge ${
 						phase === 'work'
