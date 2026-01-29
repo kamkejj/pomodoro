@@ -40,6 +40,13 @@
 	let hasNotification = false;
 	let notificationPermission: NotificationPermission = 'default';
 	let isSettingsOpen = false;
+	let isTauriApp = false;
+	let tauriPermissionDenied = false;
+	let tauriNotification: {
+		isPermissionGranted: () => Promise<boolean>;
+		requestPermission: () => Promise<NotificationPermission>;
+		sendNotification: (options: { title: string; body?: string } | string) => Promise<void> | void;
+	} | null = null;
 
 	$: phaseLabel =
 		phase === 'work' ? 'Work' : phase === 'break' ? 'Break' : 'Complete';
@@ -55,11 +62,31 @@
 			? 'Complete'
 			: 'Paused';
 
-	onMount(() => {
+	const initializeNotifications = async () => {
+		isTauriApp = typeof window !== 'undefined' && '__TAURI__' in window;
+		if (isTauriApp) {
+			try {
+				const notificationModule = await import('@tauri-apps/plugin-notification');
+				tauriNotification = notificationModule;
+				hasNotification = true;
+				const granted = await notificationModule.isPermissionGranted();
+				notificationPermission = granted ? 'granted' : 'default';
+				tauriPermissionDenied = false;
+				updateNotificationStatus();
+				return;
+			} catch {
+				tauriNotification = null;
+			}
+		}
 		hasNotification = typeof Notification !== 'undefined';
 		if (hasNotification) {
 			notificationPermission = Notification.permission;
 		}
+		updateNotificationStatus();
+	};
+
+	onMount(() => {
+		void initializeNotifications();
 		const storedTheme = localStorage.getItem(THEME_KEY);
 		if (storedTheme) {
 			theme = storedTheme;
@@ -165,29 +192,61 @@
 			return;
 		}
 		if (notificationPermission === 'denied') {
-			notificationStatus = 'Notifications blocked in browser settings.';
+			notificationStatus = isTauriApp
+				? 'Notifications blocked in system settings.'
+				: 'Notifications blocked in browser settings.';
+			return;
+		}
+		if (isTauriApp && tauriPermissionDenied) {
+			notificationStatus = 'Notifications blocked in system settings.';
 			return;
 		}
 		notificationStatus = 'Notifications need permission.';
 	};
 
-	const requestNotificationPermission = async () => {
+	const ensureNotificationPermission = async () => {
 		if (!hasNotification) {
 			notificationStatus = 'Notifications not supported in this environment.';
-			return;
+			updateNotificationStatus();
+			return false;
+		}
+		if (notificationPermission === 'granted') return true;
+		if (notificationPermission === 'denied') {
+			updateNotificationStatus();
+			return false;
+		}
+		if (isTauriApp && tauriNotification) {
+			const permission = await tauriNotification.requestPermission();
+			notificationPermission = permission;
+			tauriPermissionDenied = permission === 'denied';
+			updateNotificationStatus();
+			return permission === 'granted';
 		}
 		const permission = await Notification.requestPermission();
 		notificationPermission = permission;
-		if (permission === 'granted') {
+		updateNotificationStatus();
+		return permission === 'granted';
+	};
+
+	const requestNotificationPermission = async () => {
+		const granted = await ensureNotificationPermission();
+		if (granted) {
 			notificationsEnabled = true;
 			localStorage.setItem(NOTIFY_KEY, 'true');
 			announceText = 'Notifications enabled.';
 		}
-		updateNotificationStatus();
 	};
 
-	const toggleNotifications = () => {
-		notificationsEnabled = !notificationsEnabled;
+	const toggleNotifications = async () => {
+		const nextValue = !notificationsEnabled;
+		if (nextValue) {
+			const granted = await ensureNotificationPermission();
+			if (!granted) {
+				announceText = 'Notifications unavailable.';
+				return;
+			}
+		}
+		notificationsEnabled = nextValue;
 		localStorage.setItem(NOTIFY_KEY, String(notificationsEnabled));
 		updateNotificationStatus();
 		announceText = notificationsEnabled ? 'Notifications enabled.' : 'Notifications disabled.';
@@ -197,6 +256,10 @@
 		if (!notificationsEnabled) return;
 		if (!hasNotification) return;
 		if (notificationPermission !== 'granted') return;
+		if (isTauriApp && tauriNotification) {
+			tauriNotification.sendNotification({ title, body });
+			return;
+		}
 		new Notification(title, {
 			body
 		});
@@ -324,7 +387,17 @@
 		announceText = 'Settings reset to classic defaults.';
 	};
 
-	const testNotification = () => {
+	const testNotification = async () => {
+		const granted = await ensureNotificationPermission();
+		if (!granted) {
+			announceText = 'Notifications unavailable.';
+			return;
+		}
+		if (!notificationsEnabled) {
+			notificationsEnabled = true;
+			localStorage.setItem(NOTIFY_KEY, 'true');
+			updateNotificationStatus();
+		}
 		sendNotification('LCARS test', 'Notifications are online.');
 	};
 
@@ -439,7 +512,7 @@
 
 	{#if isSettingsOpen}
 		<div class="overlay" role="dialog" aria-modal="true" aria-labelledby="settings-title">
-			<button class="overlay-backdrop" type="button" on:click={closeSettings} aria-label="Close settings" />
+			<button class="overlay-backdrop" type="button" on:click={closeSettings} aria-label="Close settings"></button>
 			<section class="overlay-panel panel" aria-labelledby="settings-title">
 				<div class="panel-header">
 					<h2 id="settings-title" class="panel-title">Settings</h2>
@@ -505,12 +578,12 @@
 									Request Permission
 								</button>
 							{/if}
-							<button
-								class="button ghost"
-								type="button"
-								on:click={toggleNotifications}
-								disabled={!hasNotification || notificationPermission !== 'granted'}
-							>
+						<button
+							class="button ghost"
+							type="button"
+							on:click={toggleNotifications}
+							disabled={!hasNotification || notificationPermission === 'denied'}
+						>
 								{notificationsEnabled ? 'Disable' : 'Enable'}
 							</button>
 							<button
