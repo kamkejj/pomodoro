@@ -60,13 +60,13 @@
 			: 'Paused';
 
 	const initializeNotifications = async () => {
-		isTauriApp = typeof window !== 'undefined' && '__TAURI__' in window;
-		if (isTauriApp) {
+		if (typeof window !== 'undefined') {
 			try {
 				const notificationModule = await import('@tauri-apps/plugin-notification');
-				tauriNotification = notificationModule;
-				hasNotification = true;
 				const granted = await notificationModule.isPermissionGranted();
+				tauriNotification = notificationModule;
+				isTauriApp = true;
+				hasNotification = true;
 				notificationPermission = granted ? 'granted' : 'default';
 				tauriPermissionDenied = false;
 				updateNotificationStatus();
@@ -75,6 +75,7 @@
 				tauriNotification = null;
 			}
 		}
+		isTauriApp = false;
 		hasNotification = typeof Notification !== 'undefined';
 		if (hasNotification) {
 			notificationPermission = Notification.permission;
@@ -228,12 +229,12 @@
 
 	const sendNotification = (title: string, body: string) => {
 		if (!notificationsEnabled) return;
-		if (!hasNotification) return;
-		if (notificationPermission !== 'granted') return;
 		if (isTauriApp && tauriNotification) {
 			tauriNotification.sendNotification({ title, body });
 			return;
 		}
+		if (!hasNotification) return;
+		if (notificationPermission !== 'granted') return;
 		new Notification(title, {
 			body
 		});
@@ -357,6 +358,10 @@
 	};
 
 	const testNotification = async () => {
+		if (!hasNotification) {
+			announceText = 'Notifications unavailable.';
+			return;
+		}
 		const granted = await ensureNotificationPermission();
 		if (!granted) {
 			announceText = 'Notifications unavailable.';
@@ -561,14 +566,14 @@
 									>
 										{notificationsEnabled ? 'Disable' : 'Enable'}
 									</button>
-									<button
-										class="button"
-										type="button"
-										on:click={testNotification}
-										disabled={!notificationsEnabled || notificationPermission !== 'granted'}
-									>
-										Test
-									</button>
+							<button
+								class="button"
+								type="button"
+								on:click={testNotification}
+								disabled={!hasNotification || notificationPermission === 'denied'}
+							>
+								Test
+							</button>
 								</div>
 							</fieldset>
 							<div class="settings-footer">
