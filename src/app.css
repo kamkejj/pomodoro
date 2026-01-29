@@ -397,6 +397,49 @@ a {
 	padding: var(--space-3);
 }
 
+.shortcuts-panel {
+	padding: var(--space-4);
+}
+
+.shortcuts-grid {
+	display: grid;
+	gap: var(--space-2);
+}
+
+.shortcut-item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	padding: 0.6rem 0.85rem;
+	border-radius: 18px;
+	background: var(--panel-alt);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.shortcut-label {
+	text-transform: uppercase;
+	letter-spacing: 0.18em;
+	font-size: 0.75rem;
+	color: var(--text-muted);
+}
+
+.shortcut-keys {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	font-family: var(--font-mono);
+	font-size: 0.85rem;
+}
+
+.keycap {
+	padding: 0.25rem 0.5rem;
+	border-radius: 10px;
+	background: rgba(255, 255, 255, 0.08);
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.35);
+}
+
 .settings-panel .settings-form {
 	gap: var(--space-2);
 }

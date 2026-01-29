@@ -39,6 +39,7 @@
 	let hasNotification = false;
 	let notificationPermission: NotificationPermission = 'default';
 	let isSettingsOpen = false;
+	let isShortcutsOpen = false;
 	let isTauriApp = false;
 	let tauriPermissionDenied = false;
 	let tauriNotification: {
@@ -111,6 +112,12 @@
 				openSettings();
 				return;
 			}
+			if (event.metaKey && event.key.toLowerCase() === 'k') {
+				event.preventDefault();
+				if (isSettingsOpen) return;
+				toggleShortcuts();
+				return;
+			}
 			const isFormField =
 				target.tagName === 'INPUT' ||
 				target.tagName === 'TEXTAREA' ||
@@ -120,6 +127,13 @@
 			if (isSettingsOpen) {
 				if (event.key === 'Escape') {
 					closeSettings();
+				}
+				return;
+			}
+
+			if (isShortcutsOpen) {
+				if (event.key === 'Escape') {
+					closeShortcuts();
 				}
 				return;
 			}
@@ -390,6 +404,18 @@
 	const closeSettings = () => {
 		isSettingsOpen = false;
 	};
+
+	const openShortcuts = () => {
+		isShortcutsOpen = true;
+	};
+
+	const closeShortcuts = () => {
+		isShortcutsOpen = false;
+	};
+
+	const toggleShortcuts = () => {
+		isShortcutsOpen = !isShortcutsOpen;
+	};
 </script>
 
 <svelte:head>
@@ -410,6 +436,15 @@
 			</div>
 		</div>
 		<div class="topbar-actions">
+			<button
+				class="icon-button lcars-button"
+				on:click={openShortcuts}
+				aria-label="Open keyboard shortcuts"
+				aria-keyshortcuts="Meta+K"
+				aria-pressed={isShortcutsOpen}
+			>
+				<span class="lcars-stub" aria-hidden="true"></span>
+			</button>
 			<button
 				class="icon-button lcars-button settings-button"
 				on:click={openSettings}
@@ -594,6 +629,62 @@
 						</div>
 					</div>
 				</form>
+			</section>
+		</div>
+	{/if}
+
+	{#if isShortcutsOpen}
+		<div class="overlay" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title">
+			<button
+				class="overlay-backdrop"
+				type="button"
+				on:click={closeShortcuts}
+				aria-label="Close keyboard shortcuts"
+			></button>
+			<section class="overlay-panel panel shortcuts-panel" aria-labelledby="shortcuts-title">
+				<div class="panel-header">
+					<h2 id="shortcuts-title" class="panel-title">Keyboard shortcuts</h2>
+					<div class="overlay-actions">
+						<span class="phase-badge phase-work">Controls</span>
+						<button class="button ghost" type="button" on:click={closeShortcuts}>
+							Close
+						</button>
+					</div>
+				</div>
+				<div class="shortcuts-grid">
+					<div class="shortcut-item">
+						<span class="shortcut-label">Start or pause</span>
+						<span class="shortcut-keys">
+							<span class="keycap">Space</span>
+						</span>
+					</div>
+					<div class="shortcut-item">
+						<span class="shortcut-label">Reset timer</span>
+						<span class="shortcut-keys">
+							<span class="keycap">R</span>
+						</span>
+					</div>
+					<div class="shortcut-item">
+						<span class="shortcut-label">Skip phase</span>
+						<span class="shortcut-keys">
+							<span class="keycap">S</span>
+						</span>
+					</div>
+					<div class="shortcut-item">
+						<span class="shortcut-label">Open settings</span>
+						<span class="shortcut-keys">
+							<span class="keycap">Command</span>
+							<span class="keycap">,</span>
+						</span>
+					</div>
+					<div class="shortcut-item">
+						<span class="shortcut-label">Show shortcuts</span>
+						<span class="shortcut-keys">
+							<span class="keycap">Command</span>
+							<span class="keycap">K</span>
+						</span>
+					</div>
+				</div>
 			</section>
 		</div>
 	{/if}
