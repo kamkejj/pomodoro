@@ -40,8 +40,11 @@
 	let notificationPermission: NotificationPermission = 'default';
 	let isSettingsOpen = false;
 	let isShortcutsOpen = false;
+	let menuUnlistenCallbacks: Array<() => void> = [];
 	let isTauriApp = false;
 	let tauriPermissionDenied = false;
+	let modifierKeyLabel = 'Command';
+	let modifierKeyAria = 'Meta';
 	let tauriNotification: {
 		isPermissionGranted: () => Promise<boolean>;
 		requestPermission: () => Promise<NotificationPermission>;
@@ -89,12 +92,34 @@
 
 	onMount(() => {
 		void initializeNotifications();
+		if (typeof navigator !== 'undefined') {
+			const isMac = /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+			modifierKeyLabel = isMac ? 'Command' : 'Ctrl';
+			modifierKeyAria = isMac ? 'Meta' : 'Control';
+		}
 		const storedTheme = localStorage.getItem(THEME_KEY);
 		if (storedTheme) {
 			theme = storedTheme;
 		}
 		applyTheme(theme);
 		loadNotificationPreference();
+
+		const setupMenuListeners = async () => {
+			try {
+				const { listen } = await import('@tauri-apps/api/event');
+				const unlistenSettings = await listen('menu:open-settings', () => {
+					openSettings();
+				});
+				const unlistenShortcuts = await listen('menu:open-shortcuts', () => {
+					openShortcuts();
+				});
+				menuUnlistenCallbacks = [unlistenSettings, unlistenShortcuts];
+			} catch {
+				menuUnlistenCallbacks = [];
+			}
+		};
+
+		void setupMenuListeners();
 
 		const stored = loadSettings();
 		if (stored) {
@@ -151,7 +176,10 @@
 		};
 
 		window.addEventListener('keydown', handleKeydown);
-		return () => window.removeEventListener('keydown', handleKeydown);
+		return () => {
+			window.removeEventListener('keydown', handleKeydown);
+			menuUnlistenCallbacks.forEach((unlisten) => unlisten());
+		};
 	});
 
 	onDestroy(() => {
@@ -398,6 +426,7 @@
 	};
 
 	const openSettings = () => {
+		isShortcutsOpen = false;
 		isSettingsOpen = true;
 	};
 
@@ -406,6 +435,7 @@
 	};
 
 	const openShortcuts = () => {
+		isSettingsOpen = false;
 		isShortcutsOpen = true;
 	};
 
@@ -414,7 +444,11 @@
 	};
 
 	const toggleShortcuts = () => {
-		isShortcutsOpen = !isShortcutsOpen;
+		if (isShortcutsOpen) {
+			closeShortcuts();
+			return;
+		}
+		openShortcuts();
 	};
 </script>
 
@@ -437,19 +471,10 @@
 		</div>
 		<div class="topbar-actions">
 			<button
-				class="icon-button lcars-button"
-				on:click={openShortcuts}
-				aria-label="Open keyboard shortcuts"
-				aria-keyshortcuts="Meta+K"
-				aria-pressed={isShortcutsOpen}
-			>
-				<span class="lcars-stub" aria-hidden="true"></span>
-			</button>
-			<button
 				class="icon-button lcars-button settings-button"
 				on:click={openSettings}
 				aria-label="Open settings"
-				aria-keyshortcuts="Meta+,"
+				aria-keyshortcuts={`${modifierKeyAria}+,`}
 				aria-pressed={isSettingsOpen}
 			>
 				<span class="lcars-stub" aria-hidden="true"></span>
@@ -673,14 +698,14 @@
 					<div class="shortcut-item">
 						<span class="shortcut-label">Open settings</span>
 						<span class="shortcut-keys">
-							<span class="keycap">Command</span>
+							<span class="keycap">{modifierKeyLabel}</span>
 							<span class="keycap">,</span>
 						</span>
 					</div>
 					<div class="shortcut-item">
 						<span class="shortcut-label">Show shortcuts</span>
 						<span class="shortcut-keys">
-							<span class="keycap">Command</span>
+							<span class="keycap">{modifierKeyLabel}</span>
 							<span class="keycap">K</span>
 						</span>
 					</div>

@@ -4,6 +4,7 @@
 	"version": "0.0.1",
 	"type": "module",
 	"dependencies": {
+		"@tauri-apps/api": "^2.0.0",
 		"@tauri-apps/plugin-notification": "^2.0.0"
 	},
 	"scripts": {
