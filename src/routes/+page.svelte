@@ -513,7 +513,7 @@
 	{#if isSettingsOpen}
 		<div class="overlay" role="dialog" aria-modal="true" aria-labelledby="settings-title">
 			<button class="overlay-backdrop" type="button" on:click={closeSettings} aria-label="Close settings"></button>
-			<section class="overlay-panel panel" aria-labelledby="settings-title">
+			<section class="overlay-panel panel settings-panel" aria-labelledby="settings-title">
 				<div class="panel-header">
 					<h2 id="settings-title" class="panel-title">Settings</h2>
 					<div class="overlay-actions">

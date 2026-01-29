@@ -361,6 +361,15 @@ a {
 	align-content: start;
 }
 
+.settings-actions .settings-footer {
+	flex-direction: column;
+	align-items: stretch;
+}
+
+.settings-actions .settings-footer .button {
+	width: 100%;
+}
+
 .field {
 	display: grid;
 	gap: var(--space-2);
@@ -372,6 +381,19 @@ a {
 	letter-spacing: 0.2em;
 	font-size: 0.7rem;
 	color: var(--text-muted);
+}
+
+.settings-panel {
+	padding: var(--space-3);
+}
+
+.settings-panel .settings-form {
+	gap: var(--space-2);
+}
+
+.settings-panel .field label,
+.settings-panel .field legend {
+	letter-spacing: 0.12em;
 }
 
 .field legend {
@@ -392,6 +414,10 @@ a {
 	color: var(--text);
 	font-size: 0.95rem;
 	font-family: var(--font-mono);
+}
+
+.settings-panel .settings-group .field input {
+	width: 100%;
 }
 
 .field input:focus-visible {
@@ -501,7 +527,7 @@ a {
 	}
 }
 
-@media (max-width: 720px) {
+@media (max-width: 560px) {
 	.settings-grid {
 		grid-template-columns: 1fr;
 	}
