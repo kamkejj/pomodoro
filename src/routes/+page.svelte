@@ -25,7 +25,8 @@
 	let draftIterations = iterations;
 
 	let phase: Phase = 'work';
-	let remainingSeconds = workMinutes * 60;
+	let remainingMilliseconds = workMinutes * 60 * 1000;
+	let remainingSeconds = Math.ceil(remainingMilliseconds / 1000);
 	let currentIteration = 1;
 	let isRunning = false;
 
@@ -52,7 +53,9 @@
 		breakMinutes,
 		iterations
 	});
-	$: progressPercent = getProgressPercent(remainingSeconds, phaseTotalSeconds);
+	$: phaseTotalMilliseconds = phaseTotalSeconds * 1000;
+	$: remainingSeconds = Math.max(0, Math.ceil(remainingMilliseconds / 1000));
+	$: progressPercent = getProgressPercent(remainingMilliseconds, phaseTotalMilliseconds);
 	$: statusLabel = isRunning
 		? 'Running'
 		: phase === 'complete'
@@ -258,7 +261,7 @@
 		stopTimer();
 		phase = 'work';
 		currentIteration = 1;
-		remainingSeconds = workMinutes * 60;
+		remainingMilliseconds = workMinutes * 60 * 1000;
 		if (announce) {
 			announceText = 'Timer reset to start.';
 		}
@@ -274,11 +277,11 @@
 		lastTick = Date.now();
 		intervalId = setInterval(() => {
 			const now = Date.now();
-			const deltaSeconds = Math.floor((now - lastTick) / 1000);
-			if (deltaSeconds <= 0) return;
-			lastTick += deltaSeconds * 1000;
-			advanceTime(deltaSeconds);
-		}, 250);
+			const deltaMilliseconds = now - lastTick;
+			if (deltaMilliseconds <= 0) return;
+			lastTick = now;
+			advanceTime(deltaMilliseconds);
+		}, 50);
 		announceText = 'Timer started.';
 	};
 
@@ -308,14 +311,14 @@
 		if (phase === 'work') {
 			if (currentIteration >= iterations) {
 				phase = 'complete';
-				remainingSeconds = 0;
+				remainingMilliseconds = 0;
 				stopTimer();
 				announceText = 'All iterations complete.';
 				sendNotification('Pomodoro complete', 'All iterations finished.');
 				return;
 			}
 			phase = 'break';
-			remainingSeconds = breakMinutes * 60;
+			remainingMilliseconds = breakMinutes * 60 * 1000;
 			announceText = 'Break started.';
 			sendNotification('Break time', `Break for ${breakMinutes} minutes.`);
 			return;
@@ -324,16 +327,16 @@
 		if (phase === 'break') {
 			currentIteration += 1;
 			phase = 'work';
-			remainingSeconds = workMinutes * 60;
+			remainingMilliseconds = workMinutes * 60 * 1000;
 			announceText = 'Work session started.';
 			sendNotification('Work session', `Focus for ${workMinutes} minutes.`);
 		}
 	};
 
-	const advanceTime = (deltaSeconds: number) => {
+	const advanceTime = (deltaMilliseconds: number) => {
 		if (phase === 'complete') return;
-		remainingSeconds -= deltaSeconds;
-		if (remainingSeconds <= 0) {
+		remainingMilliseconds -= deltaMilliseconds;
+		if (remainingMilliseconds <= 0) {
 			advancePhase();
 		}
 	};
