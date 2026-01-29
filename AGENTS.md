@@ -26,11 +26,13 @@ Use Bun unless you need npm.
 - Rust tests: `cargo test` (run in `src-tauri/`)
 
 ### Tests
-- No JS test runner is configured.
-- If you add tests, document the runner and single-test command here.
+- JS test runner: Vitest.
+- Install deps: `bun install`.
+- Run all tests: `bun run test`.
+- Watch mode: `bun run test:watch`.
 
 ### Single test (current state)
-- Not available for JS/TS because no test framework is configured.
+- Run a single test file: `bun run test -- src/lib/pomodoro.test.ts`.
 - For Rust, run a single test with `cargo test <test_name>`.
 
 ## Code style

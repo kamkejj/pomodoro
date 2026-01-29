@@ -1,22 +1,20 @@
 <script lang="ts">
 	import { onDestroy, onMount } from 'svelte';
-
-	type Phase = 'work' | 'break' | 'complete';
-
-	type Settings = {
-		workMinutes: number;
-		breakMinutes: number;
-		iterations: number;
-	};
+	import {
+		defaultSettings,
+		formatTime,
+		getPhaseLabel,
+		getPhaseTotalSeconds,
+		getProgressPercent,
+		parseStoredSettings,
+		sanitizeSettings,
+		type Phase,
+		type Settings
+	} from '$lib/pomodoro';
 
 	const SETTINGS_KEY = 'pomodoro-settings-v1';
 	const THEME_KEY = 'pomodoro-theme-v1';
 	const NOTIFY_KEY = 'pomodoro-notify-v1';
-	const defaultSettings: Settings = {
-		workMinutes: 25,
-		breakMinutes: 5,
-		iterations: 4
-	};
 
 	let workMinutes = defaultSettings.workMinutes;
 	let breakMinutes = defaultSettings.breakMinutes;
@@ -48,14 +46,13 @@
 		sendNotification: (options: { title: string; body?: string } | string) => Promise<void> | void;
 	} | null = null;
 
-	$: phaseLabel =
-		phase === 'work' ? 'Work' : phase === 'break' ? 'Break' : 'Complete';
-	$: phaseTotalSeconds =
-		phase === 'work' ? workMinutes * 60 : phase === 'break' ? breakMinutes * 60 : 0;
-	$: progressPercent =
-		phaseTotalSeconds > 0
-			? Math.max(0, Math.min(100, (remainingSeconds / phaseTotalSeconds) * 100))
-			: 0;
+	$: phaseLabel = getPhaseLabel(phase);
+	$: phaseTotalSeconds = getPhaseTotalSeconds(phase, {
+		workMinutes,
+		breakMinutes,
+		iterations
+	});
+	$: progressPercent = getProgressPercent(remainingSeconds, phaseTotalSeconds);
 	$: statusLabel = isRunning
 		? 'Running'
 		: phase === 'complete'
@@ -138,31 +135,8 @@
 		stopTimer();
 	});
 
-	const clamp = (value: number, min: number, max: number) =>
-		Math.min(max, Math.max(min, Math.round(value)));
-
-	const sanitizeSettings = (values: Partial<Settings>): Settings => {
-		const work = Number.isFinite(values.workMinutes)
-			? clamp(values.workMinutes as number, 1, 180)
-			: defaultSettings.workMinutes;
-		const rest = Number.isFinite(values.breakMinutes)
-			? clamp(values.breakMinutes as number, 1, 60)
-			: defaultSettings.breakMinutes;
-		const rounds = Number.isFinite(values.iterations)
-			? clamp(values.iterations as number, 1, 12)
-			: defaultSettings.iterations;
-		return { workMinutes: work, breakMinutes: rest, iterations: rounds };
-	};
-
-	const loadSettings = (): Settings | null => {
-		const raw = localStorage.getItem(SETTINGS_KEY);
-		if (!raw) return null;
-		try {
-			return sanitizeSettings(JSON.parse(raw));
-		} catch {
-			return null;
-		}
-	};
+	const loadSettings = (): Settings | null =>
+		parseStoredSettings(localStorage.getItem(SETTINGS_KEY));
 
 	const persistSettings = (values: Settings) => {
 		localStorage.setItem(SETTINGS_KEY, JSON.stringify(values));
@@ -284,11 +258,6 @@
 		}
 	};
 
-	const formatTime = (totalSeconds: number) => {
-		const minutes = Math.floor(totalSeconds / 60);
-		const seconds = Math.max(0, totalSeconds % 60);
-		return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-	};
 
 	const startTimer = () => {
 		if (phase === 'complete') {
