@@ -48,6 +48,8 @@
 	let modifierKeyLabel = 'Command';
 	let modifierKeyAria = 'Meta';
 	let statusPanelEl: HTMLDivElement | null = null;
+	let settingsFirstInputEl: HTMLInputElement | null = null;
+	let settingsPanelEl: HTMLElement | null = null;
 	let appWindow: any = null;
 	let tauriWindowApi: any = null;
 	let tauriDpiApi: any = null;
@@ -478,10 +480,47 @@
 		sendNotification('LCARS test', 'Notifications are online.');
 	};
 
-	const openSettings = () => {
+	const openSettings = async () => {
 		void exitStatusOnlyMode();
 		isShortcutsOpen = false;
 		isSettingsOpen = true;
+		await tick();
+		settingsFirstInputEl?.focus();
+	};
+
+	const getSettingsFocusableElements = (): HTMLElement[] => {
+		const panel = settingsPanelEl;
+		if (!panel) return [];
+		const focusable = Array.from(
+			panel.querySelectorAll<HTMLElement>(
+				'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+			)
+		) as HTMLElement[];
+		return focusable.filter((element) => element.getAttribute('aria-hidden') !== 'true');
+	};
+
+	const handleSettingsKeydown = (event: KeyboardEvent) => {
+		if (event.key === 'Escape') {
+			event.preventDefault();
+			closeSettings();
+			return;
+		}
+		if (event.key !== 'Tab') return;
+		const focusable = getSettingsFocusableElements();
+		if (focusable.length === 0) return;
+		const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
+		const lastIndex = focusable.length - 1;
+		if (event.shiftKey) {
+			if (currentIndex <= 0) {
+				event.preventDefault();
+				focusable[lastIndex].focus();
+			}
+			return;
+		}
+		if (currentIndex === -1 || currentIndex === lastIndex) {
+			event.preventDefault();
+			focusable[0].focus();
+		}
 	};
 
 	const closeSettings = () => {
@@ -775,7 +814,12 @@
 	{#if isSettingsOpen}
 		<div class="overlay" role="dialog" aria-modal="true" aria-labelledby="settings-title">
 			<button class="overlay-backdrop" type="button" on:click={closeSettings} aria-label="Close settings"></button>
-			<section class="overlay-panel panel settings-panel" aria-labelledby="settings-title">
+			<section
+				class="overlay-panel panel settings-panel"
+				aria-labelledby="settings-title"
+				bind:this={settingsPanelEl}
+				on:keydown={handleSettingsKeydown}
+			>
 				<div class="panel-header">
 					<h2 id="settings-title" class="panel-title">Settings</h2>
 					<div class="overlay-actions">
@@ -790,16 +834,17 @@
 						<div class="settings-group">
 							<div class="field">
 								<label for="work-minutes">Work minutes</label>
-								<input
-									id="work-minutes"
-									type="number"
-									min="1"
-									max="180"
-									step="1"
-									bind:value={draftWorkMinutes}
-									inputmode="numeric"
-									aria-describedby="work-help"
-								/>
+							<input
+								id="work-minutes"
+								type="number"
+								min="1"
+								max="180"
+								step="1"
+								bind:this={settingsFirstInputEl}
+								bind:value={draftWorkMinutes}
+								inputmode="numeric"
+								aria-describedby="work-help"
+							/>
 								<p id="work-help" class="field-help">Classic default: 25 minutes.</p>
 							</div>
 							<div class="field">
