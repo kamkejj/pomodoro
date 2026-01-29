@@ -135,6 +135,11 @@ a {
 	border-color: rgba(255, 255, 255, 0.28);
 }
 
+.icon-button:active {
+	transform: translateY(0) scale(0.98);
+	box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.25);
+}
+
 .icon-button:focus-visible {
 	outline: 3px solid var(--focus);
 	outline-offset: 3px;
@@ -337,6 +342,11 @@ a {
 .button:not(:disabled):hover {
 	transform: translateY(-2px);
 	box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+.button:not(:disabled):active {
+	transform: translateY(0) scale(0.98);
+	box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.25);
 }
 
 .settings-form {
