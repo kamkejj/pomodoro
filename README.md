@@ -160,3 +160,30 @@ Build the desktop app:
 ```sh
 bunx tauri build
 ```
+
+Build for macOS (ARM64):
+
+```sh
+bunx tauri build --target aarch64-apple-darwin
+```
+
+## Version management
+
+The version number is stored in three files that must be kept in sync:
+- `package.json`
+- `src-tauri/Cargo.toml`
+- `src-tauri/tauri.conf.json`
+
+Bump version (updates all files):
+
+```sh
+bun run version:bump          # bump patch version (0.1.0 -> 0.1.1)
+bun run version:bump minor    # bump minor version (0.1.0 -> 0.2.0)
+bun run version:bump major    # bump major version (0.1.0 -> 1.0.0)
+```
+
+Or use the script directly:
+
+```sh
+node bump-version.js [patch|minor|major]
+```
