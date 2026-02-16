@@ -18,6 +18,7 @@
 	const SETTINGS_KEY = 'pomodoro-settings-v1';
 	const THEME_KEY = 'pomodoro-theme-v1';
 	const NOTIFY_KEY = 'pomodoro-notify-v1';
+	const FOCUS_ON_TIMER_END_KEY = 'pomodoro-focus-v1';
 
 	let windowTitle = APP_TITLE;
 
@@ -47,6 +48,7 @@
 	let isShortcutsOpen = false;
 	let isStatusOnlyMode = false;
 	let menuUnlistenCallbacks: Array<() => void> = [];
+	let focusOnTimerEnd = false;
 	let isTauriApp = false;
 	let hasTauriWindow = false;
 	let tauriPermissionDenied = false;
@@ -135,6 +137,7 @@
 		}
 		applyTheme(theme);
 		loadNotificationPreference();
+		loadFocusPreference();
 
 		const setupMenuListeners = async () => {
 			try {
@@ -290,6 +293,17 @@
 		updateNotificationStatus();
 	};
 
+	const loadFocusPreference = () => {
+		const stored = localStorage.getItem(FOCUS_ON_TIMER_END_KEY);
+		focusOnTimerEnd = stored === 'true';
+	};
+
+	const toggleFocusOnTimerEnd = () => {
+		focusOnTimerEnd = !focusOnTimerEnd;
+		localStorage.setItem(FOCUS_ON_TIMER_END_KEY, String(focusOnTimerEnd));
+		announceText = focusOnTimerEnd ? 'Auto focus enabled.' : 'Auto focus disabled.';
+	};
+
 	const updateNotificationStatus = () => {
 		if (!hasNotification) {
 			notificationStatus = 'Notifications not supported in this environment.';
@@ -375,6 +389,28 @@
 		});
 	};
 
+	const focusApp = async () => {
+		if (!focusOnTimerEnd) return;
+		if (!appWindow) return;
+		try {
+			await appWindow.unminimize();
+		} catch {
+			// no-op
+		}
+		try {
+			await appWindow.setFocus();
+		} catch {
+			// no-op
+		}
+		if (typeof window !== 'undefined') {
+			try {
+				window.focus();
+			} catch {
+				// no-op
+			}
+		}
+	};
+
 	const applySettingsValues = (values: Settings) => {
 		workMinutes = values.workMinutes;
 		breakMinutes = values.breakMinutes;
@@ -442,12 +478,14 @@
 				stopTimer();
 				announceText = 'All iterations complete.';
 				sendNotification('TIP complete', 'All iterations finished.');
+				void focusApp();
 				return;
 			}
 			phase = 'break';
 			remainingMilliseconds = breakMinutes * 60 * 1000;
 			announceText = 'Break started.';
 			sendNotification('Break time', `Break for ${breakMinutes} minutes.`);
+			void focusApp();
 			return;
 		}
 
@@ -457,6 +495,7 @@
 			remainingMilliseconds = workMinutes * 60 * 1000;
 			announceText = 'Work session started.';
 			sendNotification('Work session', `Focus for ${workMinutes} minutes.`);
+			void focusApp();
 		}
 	};
 
@@ -939,6 +978,19 @@
 										disabled={!hasNotification || notificationPermission === 'denied'}
 									>
 										Test
+									</button>
+								</div>
+							</fieldset>
+							<fieldset class="field" aria-describedby="focus-help">
+								<legend>Auto Focus</legend>
+								<p id="focus-help" class="field-help">Focus window when timer ends.</p>
+								<div class="settings-footer">
+									<button
+										class="button ghost"
+										type="button"
+										on:click={toggleFocusOnTimerEnd}
+									>
+										{focusOnTimerEnd ? 'Disable' : 'Enable'}
 									</button>
 								</div>
 							</fieldset>
