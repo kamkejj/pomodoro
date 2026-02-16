@@ -187,3 +187,19 @@ Or use the script directly:
 ```sh
 node bump-version.js [patch|minor|major]
 ```
+
+## Deploy
+
+Push to both remotes (origin and kamke):
+
+```sh
+bun run deploy
+```
+
+Or run the script directly:
+
+```sh
+./deploy.sh
+```
+
+This pushes the current branch to both GitHub (origin) and Kamke remotes.
