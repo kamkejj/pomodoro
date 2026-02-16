@@ -24,6 +24,15 @@ Conventions and workflow:
 - Wrap `JSON.parse` in `try/catch` and fall back to a safe default object when data is missing or invalid.
 - Preserve accessibility details (aria labels, live regions, keyboard shortcuts).
 
+## Settings behavior
+
+Settings are automatically saved when changed. The settings panel opens as an overlay and applies changes immediately:
+
+- Work minutes, break minutes, and iterations save on every input change
+- No manual save button is required
+- Changes take effect immediately and reset the timer
+- Settings persist in localStorage with the key `pomodoro-settings-v1`
+
 
 # Commands
 

@@ -30,6 +30,11 @@
 	let draftBreakMinutes = breakMinutes;
 	let draftIterations = iterations;
 
+	$: if (isSettingsOpen) {
+		draftWorkMinutes, draftBreakMinutes, draftIterations;
+		applySettings();
+	}
+
 	let phase: Phase = 'work';
 	let remainingMilliseconds = workMinutes * 60 * 1000;
 	let remainingSeconds = Math.ceil(remainingMilliseconds / 1000);
@@ -901,7 +906,7 @@
 						</button>
 					</div>
 				</div>
-				<form class="settings-form" on:submit|preventDefault={applySettings}>
+				<form class="settings-form">
 					<div class="settings-grid">
 						<div class="settings-group">
 							<div class="field">
@@ -995,7 +1000,6 @@
 								</div>
 							</fieldset>
 							<div class="settings-footer">
-								<button class="button secondary" type="submit">Make It So</button>
 								<button class="button ghost" type="button" on:click={resetToDefaults}>
 									Reset Defaults
 								</button>
