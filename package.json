@@ -10,6 +10,7 @@
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
+		"build:prod": "bun run test && bun run build",
 		"preview": "vite preview",
 		"test": "vitest run",
 		"test:watch": "vitest",

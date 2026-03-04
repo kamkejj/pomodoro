@@ -70,6 +70,12 @@ Build the production bundle:
 bun run build
 ```
 
+Build with tests (runs tests first, only builds if all tests pass):
+
+```sh
+bun run build:prod
+```
+
 Preview the production build:
 
 ```sh

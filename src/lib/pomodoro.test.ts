@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	APP_TITLE,
+	clamp,
 	defaultSettings,
 	formatTime,
-	getWindowTitle,
+	getPhaseLabel,
+	getPhaseTotalSeconds,
 	getProgressPercent,
+	getWindowTitle,
 	parseStoredSettings,
 	sanitizeSettings,
 	STATUS_ONLY_TITLE
@@ -89,5 +92,35 @@ describe('getWindowTitle', () => {
 
 	it('uses the app title when disabled', () => {
 		expect(getWindowTitle(false)).toBe(APP_TITLE);
+	});
+});
+
+describe('clamp', () => {
+	it('rounds and clamps values within range', () => {
+		expect(clamp(24.6, 1, 60)).toBe(25);
+		expect(clamp(0.4, 1, 60)).toBe(1);
+		expect(clamp(100, 1, 60)).toBe(60);
+	});
+});
+
+describe('getPhaseLabel', () => {
+	it('returns correct labels for each phase', () => {
+		expect(getPhaseLabel('work')).toBe('Work');
+		expect(getPhaseLabel('break')).toBe('Break');
+		expect(getPhaseLabel('complete')).toBe('Complete');
+	});
+});
+
+describe('getPhaseTotalSeconds', () => {
+	it('calculates work phase seconds', () => {
+		expect(getPhaseTotalSeconds('work', { workMinutes: 25, breakMinutes: 5, iterations: 4 })).toBe(1500);
+	});
+
+	it('calculates break phase seconds', () => {
+		expect(getPhaseTotalSeconds('break', { workMinutes: 25, breakMinutes: 5, iterations: 4 })).toBe(300);
+	});
+
+	it('returns 0 for complete phase', () => {
+		expect(getPhaseTotalSeconds('complete', { workMinutes: 25, breakMinutes: 5, iterations: 4 })).toBe(0);
 	});
 });
